@@ -19,7 +19,7 @@ import os
 # Add the parent directory of the current file to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from .dataCollector import EVStationDataCollector  # Use relative import
+from dataCollector import EVStationDataCollector  # Use relative import
 from datetime import datetime
 
 class EVRecommendationModelTrainer:
@@ -230,8 +230,7 @@ class EVRecommendationModelTrainer:
         for _, row in importance_df.head(8).iterrows():
             print(f"   {row['feature']}: {row['importance']:.3f}")
 
-    def save_trained_model(self, filepath='ev_recommender_model.pkl'):
-        """Save the trained model and preprocessors"""
+    def save_trained_model(self, filepath='ml/ev_recommender_model.pkl'): # <-- Path changed here
 
         if not self.is_trained:
             print("❌ No trained model to save")
@@ -245,6 +244,9 @@ class EVRecommendationModelTrainer:
             'training_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'model_type': type(self.model).__name__
         }
+        
+        # Add this line to ensure the 'ml' directory exists
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         joblib.dump(model_package, filepath)
         print(f"💾 Model saved to {filepath}")

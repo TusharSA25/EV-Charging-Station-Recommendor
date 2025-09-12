@@ -110,7 +110,7 @@ const callPythonMLScript = (inputData) => {
     const timeout = setTimeout(() => {
       pythonProcess.kill('SIGTERM');
       reject(new Error('Python ML script timeout'));
-    }, 30000);
+    }, 60000);
 
     pythonProcess.on('close', () => {
       clearTimeout(timeout);

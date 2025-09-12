@@ -9,7 +9,7 @@
  */
 const transformStationData = (rawStations) => {
   return rawStations.map(station => {
-    // Get the primary connection (highest power rating)
+    // ... (existing code for primaryConnection)
     const connections = station.Connections || [];
     const primaryConnection = connections.reduce((prev, current) => {
       const prevPower = prev?.PowerKW || 0;
@@ -20,53 +20,38 @@ const transformStationData = (rawStations) => {
     // Determine if it's fast charging (50kW or higher)
     const maxPowerKW = primaryConnection?.PowerKW || 0;
     const fast_charging = maxPowerKW >= 50;
+    
+    // --- ADD THIS BLOCK ---
+    // Classify charger speed to match ML model's training data
+    let charger_category = 'slow';
+    if (maxPowerKW >= 50) {
+      charger_category = 'superfast';
+    } else if (maxPowerKW >= 22) {
+      charger_category = 'fast';
+    }
+    // --- END OF ADDED BLOCK ---
 
-    // Get operator name
-    const operator = station.OperatorInfo?.Title || 'Unknown';
-
-    // Calculate estimated usage cost (simplified calculation)
-    const usage_cost = calculateUsageCost(maxPowerKW, station.UsageType);
-
-    // Get access type
-    const access_type = getAccessType(station.UsageType);
-
-    // Format address
-    const address = formatAddress(station.AddressInfo);
-
-    // Calculate distance if coordinates are available
-    const distance = station.AddressInfo?.Distance || 0;
+    // ... (existing code for operator, usage_cost, access_type, address, distance)
 
     return {
       id: station.ID,
       name: station.AddressInfo?.Title || `Charging Station ${station.ID}`,
-      operator: operator,
+      operator: station.OperatorInfo?.Title || 'Unknown',
       latitude: station.AddressInfo?.Latitude,
       longitude: station.AddressInfo?.Longitude,
-      distance: Math.round(distance * 10) / 10, // Round to 1 decimal place
-      usage_cost: usage_cost,
-      access_type: access_type,
-      address: address,
+      distance: Math.round((station.AddressInfo?.Distance || 0) * 10) / 10,
+      usage_cost: calculateUsageCost(maxPowerKW, station.UsageType),
+      access_type: getAccessType(station.UsageType),
+      address: formatAddress(station.AddressInfo),
       fast_charging: fast_charging,
       max_power_kw: maxPowerKW,
+      charger_category: charger_category, // <-- ADD THIS LINE
       connection_type: primaryConnection?.ConnectionType?.Title || 'Unknown',
       total_connections: connections.length,
       status: station.StatusType?.Title || 'Unknown',
-      last_verified: station.DateLastVerified,
-      // Additional useful data
-      phone: station.AddressInfo?.ContactTelephone1,
-      website: station.AddressInfo?.RelatedURL,
-      operator_website: station.OperatorInfo?.WebsiteURL,
-      comments: station.GeneralComments,
-      // Raw data for ML model
-      raw_data: {
-        usage_type_id: station.UsageType?.ID,
-        status_type_id: station.StatusType?.ID,
-        operator_id: station.OperatorInfo?.ID,
-        connection_types: connections.map(c => c.ConnectionType?.ID),
-        power_ratings: connections.map(c => c.PowerKW)
-      }
+      // ... (rest of the object)
     };
-  }).filter(station => station.latitude && station.longitude); // Filter out stations without coordinates
+  }).filter(station => station.latitude && station.longitude);
 };
 
 /**
