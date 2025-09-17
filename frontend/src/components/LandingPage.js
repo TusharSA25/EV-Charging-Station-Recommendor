@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import MapDisplay from './MapDisplay';
-// --- Reusable Icon Components (or you can use an icon library like react-icons) ---
+
+// --- Icon components remain the same ---
 const Zap = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>;
 const LocationMarker = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>;
+
 
 const LandingPage = () => {
     // --- STATE MANAGEMENT ---
@@ -17,7 +19,11 @@ const LandingPage = () => {
     const [stations, setStations] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [message, setMessage] = useState('Enter your location to find the best EV stations near you.'); // User feedback
+    const [message, setMessage] = useState('Enter your location to find the best EV stations near you.');
+    
+    // --- (New) State for tracking the selected station ---
+    const [selectedStation, setSelectedStation] = useState(null);
+
 
     // --- API CONFIGURATION ---
     const API_URL = 'http://localhost:5000/api/recommend';
@@ -66,6 +72,7 @@ const LandingPage = () => {
         setError(null);
         setMessage('');
         setStations([]);
+        setSelectedStation(null); // Clear selected station on new search
 
         try {
             const response = await axios.post(API_URL, {
@@ -89,6 +96,11 @@ const LandingPage = () => {
             setIsLoading(false);
         }
     };
+    
+    // --- (New) Handler to set the selected station ---
+    const handleStationSelect = (station) => {
+        setSelectedStation(station);
+    };
 
     // --- JSX RENDER ---
     return (
@@ -100,7 +112,7 @@ const LandingPage = () => {
             </header>
             
             <main className="container mx-auto px-4 py-12">
-                {/* RECOMMENDATION FORM SECTION */}
+                {/* RECOMMENDATION FORM SECTION - (No changes here) */}
                 <section id="recommender" className="bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-700">
                     <h2 className="text-3xl font-bold mb-6 text-center text-green-400">Find Your Perfect Charge</h2>
                     <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -139,16 +151,11 @@ const LandingPage = () => {
                 
                 {/* RESULTS SECTION */}
                 <section id="results" className="mt-12">
-                    {/* Loading State */}
+                    {/* States for Loading, Error, and Messages remain the same */}
                     {isLoading && <div className="text-center py-10"><p>Finding the best stations for you...</p></div>}
-
-                    {/* Error State */}
                     {error && <div className="text-center py-10 text-red-400 font-semibold">{error}</div>}
-
-                    {/* Message State */}
                     {message && !isLoading && <div className="text-center py-10 text-gray-400">{message}</div>}
 
-                    {/* --- MODIFIED SUCCESS STATE --- */}
                     {stations.length > 0 && (
                         <div>
                             <h2 className="text-3xl font-bold mb-6 text-center">Top Recommendations</h2>
@@ -159,13 +166,19 @@ const LandingPage = () => {
                                     <MapDisplay 
                                         stations={stations} 
                                         userLocation={{ latitude: formData.latitude, longitude: formData.longitude }} 
+                                        selectedStation={selectedStation} // <-- (New) Pass selected station to map
                                     />
                                 </div>
 
                                 {/* List Column */}
                                 <div className="space-y-6">
                                     {stations.map(station => (
-                                        <div key={station.id} className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+                                        // --- (Updated) Added onClick handler and hover styles ---
+                                        <div 
+                                            key={station.id} 
+                                            onClick={() => handleStationSelect(station)}
+                                            className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700 cursor-pointer transition-all duration-200 hover:border-green-500 hover:bg-gray-700"
+                                        >
                                             <div className="flex justify-between items-start">
                                                 <h3 className="text-xl font-bold text-green-400">{station.name}</h3>
                                                 <span className="bg-green-900 text-green-300 text-sm font-semibold px-2.5 py-0.5 rounded-full">{station.predicted_rating.toFixed(1)} ★</span>

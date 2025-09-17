@@ -1,12 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react'; // Import useRef
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// --- (New) Custom Icon Definitions ---
-// We define custom icons to differentiate between the user and EV stations.
-// These are simple SVG-based icons to avoid issues with image paths.
-
+// --- Custom Icon Definitions (No changes here) ---
 const userIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -25,32 +22,42 @@ const stationIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-
-// --- (New) Helper Component to Adjust Map View ---
-// This component will automatically zoom and pan the map to fit all markers.
-const MapViewUpdater = ({ stations, userLocation }) => {
+// --- (Updated) Combined Map Controller ---
+const MapController = ({ stations, userLocation, selectedStation, markerRefs }) => {
   const map = useMap();
 
+  // This effect runs when the list of stations changes, fitting all markers in view.
   useEffect(() => {
     if (stations && stations.length > 0 && userLocation.latitude && userLocation.longitude) {
-      // Create a bounding box including all station markers and the user's location
       const bounds = L.latLngBounds([
         ...stations.map(s => [s.latitude, s.longitude]),
         [userLocation.latitude, userLocation.longitude]
       ]);
-      
-      // Fit the map to these bounds with some padding
       map.fitBounds(bounds, { padding: [50, 50] });
     }
   }, [stations, userLocation, map]);
 
-  return null; // This component does not render anything itself
+  // --- (New) This effect runs when a station is selected from the list ---
+  useEffect(() => {
+    if (selectedStation) {
+      const { latitude, longitude, id } = selectedStation;
+      map.flyTo([latitude, longitude], 15); // Animate to the marker's position
+      
+      // Open the popup for the selected marker
+      const marker = markerRefs.current[id];
+      if (marker) {
+        marker.openPopup();
+      }
+    }
+  }, [selectedStation, map, markerRefs]);
+
+  return null;
 };
 
 
-const MapDisplay = ({ stations, userLocation }) => {
-  
-  // A fixed center for when the map first loads, before results are available
+const MapDisplay = ({ stations, userLocation, selectedStation }) => {
+  // --- (New) Create a ref to hold references to our markers ---
+  const markerRefs = useRef({});
   const initialMapCenter = [12.9716, 77.5946]; 
 
   return (
@@ -64,9 +71,6 @@ const MapDisplay = ({ stations, userLocation }) => {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
-      {/* --- (New) Marker Rendering Logic --- */}
-
-      {/* Add a marker for the user's location if it exists */}
       {userLocation && userLocation.latitude && (
         <Marker 
           position={[userLocation.latitude, userLocation.longitude]} 
@@ -76,12 +80,13 @@ const MapDisplay = ({ stations, userLocation }) => {
         </Marker>
       )}
 
-      {/* Map over the stations and create a marker for each one */}
       {stations && stations.map(station => (
+        // --- (Updated) Add a ref to each marker ---
         <Marker 
           key={station.id} 
           position={[station.latitude, station.longitude]} 
           icon={stationIcon}
+          ref={(el) => (markerRefs.current[station.id] = el)} // Store marker instance
         >
           <Popup>
             <b>{station.name}</b><br />
@@ -89,9 +94,14 @@ const MapDisplay = ({ stations, userLocation }) => {
           </Popup>
         </Marker>
       ))}
-
-      {/* Add the MapViewUpdater component to control map bounds */}
-      <MapViewUpdater stations={stations} userLocation={userLocation} />
+      
+      {/* --- (Updated) Pass new props to the controller --- */}
+      <MapController 
+          stations={stations} 
+          userLocation={userLocation} 
+          selectedStation={selectedStation}
+          markerRefs={markerRefs}
+      />
       
     </MapContainer>
   );
