@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-
+import MapDisplay from './MapDisplay';
 // --- Reusable Icon Components (or you can use an icon library like react-icons) ---
 const Zap = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>;
 const LocationMarker = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>;
@@ -141,32 +141,44 @@ const LandingPage = () => {
                 <section id="results" className="mt-12">
                     {/* Loading State */}
                     {isLoading && <div className="text-center py-10"><p>Finding the best stations for you...</p></div>}
-                    
+
                     {/* Error State */}
                     {error && <div className="text-center py-10 text-red-400 font-semibold">{error}</div>}
-                    
+
                     {/* Message State */}
                     {message && !isLoading && <div className="text-center py-10 text-gray-400">{message}</div>}
 
-                    {/* Success State */}
+                    {/* --- MODIFIED SUCCESS STATE --- */}
                     {stations.length > 0 && (
                         <div>
                             <h2 className="text-3xl font-bold mb-6 text-center">Top Recommendations</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {stations.map(station => (
-                                    <div key={station.id} className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700 transform hover:-translate-y-1 transition-transform">
-                                        <div className="flex justify-between items-start">
-                                            <h3 className="text-xl font-bold text-green-400">{station.name}</h3>
-                                            <span className="bg-green-900 text-green-300 text-sm font-semibold px-2.5 py-0.5 rounded-full">{station.predicted_rating.toFixed(1)} ★</span>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+
+                                {/* Map Column */}
+                                <div className="lg:sticky lg:top-8">
+                                    <MapDisplay 
+                                        stations={stations} 
+                                        userLocation={{ latitude: formData.latitude, longitude: formData.longitude }} 
+                                    />
+                                </div>
+
+                                {/* List Column */}
+                                <div className="space-y-6">
+                                    {stations.map(station => (
+                                        <div key={station.id} className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+                                            <div className="flex justify-between items-start">
+                                                <h3 className="text-xl font-bold text-green-400">{station.name}</h3>
+                                                <span className="bg-green-900 text-green-300 text-sm font-semibold px-2.5 py-0.5 rounded-full">{station.predicted_rating.toFixed(1)} ★</span>
+                                            </div>
+                                            <p className="mt-2 text-gray-400">{station.operator}</p>
+                                            <div className="mt-4 border-t border-gray-700 pt-4 flex justify-between text-sm text-gray-300">
+                                                <span>{station.distance} km away</span>
+                                                <span>{station.max_power_kw} kW max</span>
+                                                <span className={`${station.fast_charging ? 'text-green-400' : 'text-gray-500'}`}>Fast Charge</span>
+                                            </div>
                                         </div>
-                                        <p className="mt-2 text-gray-400">{station.operator}</p>
-                                        <div className="mt-4 border-t border-gray-700 pt-4 flex justify-between text-sm text-gray-300">
-                                            <span>{station.distance} km away</span>
-                                            <span>{station.max_power_kw} kW max</span>
-                                            <span className={`${station.fast_charging ? 'text-green-400' : 'text-gray-500'}`}>Fast Charge</span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
