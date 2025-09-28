@@ -1,38 +1,102 @@
-.App {
-  text-align: center;
+/* Set up Tailwind's base styles, components, and utilities */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom global styles and animations */
+body {
+  /* Ensures smooth scrolling on pages with sticky elements like our map */
+  scroll-padding-top: 2rem; 
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+/* Themed styling for Leaflet's popups to match our dark UI */
+.leaflet-popup .leaflet-popup-content-wrapper {
+  background-color: #1f2937; /* bg-slate-800 */
+  color: #d1d5db; /* text-slate-300 */
+  border-radius: 0.75rem; /* rounded-xl */
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  border: 1px solid #374151; /* border-slate-700 */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+.leaflet-popup .leaflet-popup-tip {
+  background: #1f2937; /* bg-slate-800 */
+}
+
+.leaflet-popup-content-wrapper .leaflet-popup-content {
+  margin: 14px 20px;
+  line-height: 1.6;
+}
+
+.leaflet-popup-content b {
+  color: #34d399; /* text-emerald-400 */
+  font-weight: 700;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: #9ca3af; /* text-slate-400 */
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: #f9fafb; /* text-slate-50 */
+}
+
+/* Custom pulsing dot animation for the user's location on the map */
+.pulsing-dot {
+  width: 16px;
+  height: 16px;
+  background-color: #4299e1; /* A nice blue */
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 8px rgba(66, 153, 225, 0.8);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(66, 153, 225, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(66, 153, 225, 0);
+  }
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(66, 153, 225, 0);
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+/* Subtle animated gradient for the main background */
+@keyframes gradient-xy {
+    0%, 100% {
+        background-size: 400% 400%;
+        background-position: left center;
+    }
+    50% {
+        background-size: 200% 200%;
+        background-position: right center;
+    }
 }
 
-.App-link {
-  color: #61dafb;
+.animate-gradient-xy {
+  animation: gradient-xy 15s ease infinite;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Custom styled scrollbar for the station list */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569; /* slate-600 */
+  border-radius: 10px;
+  border: 2px solid #1e293b; /* bg-slate-800 to create a padding effect */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b; /* slate-500 */
 }
