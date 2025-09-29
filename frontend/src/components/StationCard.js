@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { StarIcon, DistanceIcon, PowerIcon, FastChargeIcon } from './Icons';
+import { StarIcon, DistanceIcon, PowerIcon, FastChargeIcon } from './icons';
 
 const StationCard = ({ station, selectedStation, handleStationSelect }) => {
     // Animation variants for each card

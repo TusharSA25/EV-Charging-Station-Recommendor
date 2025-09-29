@@ -1,112 +1,128 @@
-import React, { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import React from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useEffect, useRef } from 'react';
 
-// Custom pulsing icon for the user's location
-const userIcon = new L.DivIcon({
-  html: `<div class="pulsing-dot"></div>`,
-  className: '', // This is required but can be empty
-  iconSize: [16, 16],
-  iconAnchor: [8, 8]
-});
-
-// Standard green icon for charging stations
-const stationIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-// A helper component to control the map imperatively
+// --- Map Controller for animations and bounds ---
 const MapController = ({ stations, userLocation, selectedStation, markerRefs }) => {
-  const map = useMap();
+    const map = useMap();
 
-  // Effect to fit all markers in view on a new search
-  useEffect(() => {
-    if (stations && stations.length > 0 && userLocation.latitude && userLocation.longitude) {
-      const bounds = L.latLngBounds([
-        ...stations.map(s => [s.latitude, s.longitude]),
-        [userLocation.latitude, userLocation.longitude]
-      ]);
-      map.fitBounds(bounds, { padding: [50, 50] });
-    }
-  }, [stations, userLocation, map]);
+    useEffect(() => {
+        if (!selectedStation && stations && stations.length > 0 && userLocation.latitude && userLocation.longitude) {
+            const bounds = L.latLngBounds([
+                ...stations.map(s => [s.latitude, s.longitude]),
+                [userLocation.latitude, userLocation.longitude]
+            ]);
+            map.fitBounds(bounds, { padding: [50, 50], duration: 1 });
+        }
+    }, [stations, userLocation, map, selectedStation]);
 
-  // Effect to fly to a selected station and open its popup
-  useEffect(() => {
-    if (selectedStation) {
-      const { latitude, longitude, id } = selectedStation;
-      map.flyTo([latitude, longitude], 15);
-      const marker = markerRefs.current[id];
-      if (marker) {
-        marker.openPopup();
-      }
-    }
-  }, [selectedStation, map, markerRefs]);
+    useEffect(() => {
+        if (selectedStation) {
+            const { latitude, longitude, id } = selectedStation;
+            map.flyTo([latitude, longitude], 15, { duration: 1 });
+            const marker = markerRefs.current[id];
+            if (marker) {
+                setTimeout(() => { marker.openPopup(); }, 500);
+            }
+        }
+    }, [selectedStation, map, markerRefs]);
 
-  return null;
+    return null;
 };
 
+// --- Component to handle map click events ---
+const MapClickHandler = ({ handleMapClick }) => {
+    useMapEvents({
+        click(e) {
+            handleMapClick(e);
+        },
+    });
+    return null;
+};
 
-const MapDisplay = ({ stations, userLocation, selectedStation }) => {
-  const markerRefs = useRef({});
-  const initialMapCenter = [12.9716, 77.5946]; // Bengaluru
+const MapDisplay = ({ stations, userLocation, selectedStation, handleMapClick }) => {
+    const markerRefs = useRef({});
+    const initialMapCenter = userLocation.latitude ? [userLocation.latitude, userLocation.longitude] : [12.9716, 77.5946];
 
-  return (
-    // Container with themed styling
-    <div className="rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-700 h-full">
-      <MapContainer
-        center={initialMapCenter}
-        zoom={13}
-        style={{ height: '100%', width: '100%', minHeight: '500px' }}
-        scrollWheelZoom={false} // Prevents accidental zooming while scrolling the page
-      >
-        {/* Dark-themed map tiles for a cohesive look */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        />
+    const userIcon = L.divIcon({
+        html: `<div class="relative flex items-center justify-center">
+                 <div class="absolute w-8 h-8 bg-emerald-500 rounded-full animate-ping-slow opacity-60"></div>
+                 <div class="relative w-4 h-4 bg-emerald-400 rounded-full border-2 border-white shadow-lg"></div>
+               </div>`,
+        className: 'bg-transparent border-0',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+    });
 
-        {/* Marker for the user's location */}
-        {userLocation && userLocation.latitude && (
-          <Marker
-            position={[userLocation.latitude, userLocation.longitude]}
-            icon={userIcon}
-          >
-            <Popup>Your Location</Popup>
-          </Marker>
-        )}
+    const stationIcon = new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
 
-        {/* Markers for each charging station */}
-        {stations && stations.map(station => (
-          <Marker
-            key={station.id}
-            position={[station.latitude, station.longitude]}
-            icon={stationIcon}
-            ref={(el) => (markerRefs.current[station.id] = el)} // Store reference to marker
-          >
-            <Popup>
-              <b>{station.name}</b><br />
-              {station.operator}
-            </Popup>
-          </Marker>
-        ))}
+    const ThemedPopup = (props) => (
+        <Popup {...props} autoPan={false}>
+            <div className="bg-slate-800 text-white rounded-lg p-0 m-0">
+                {props.children}
+            </div>
+        </Popup>
+    );
 
-        {/* The controller component that manages map state */}
-        <MapController
-          stations={stations}
-          userLocation={userLocation}
-          selectedStation={selectedStation}
-          markerRefs={markerRefs}
-        />
-      </MapContainer>
-    </div>
-  );
+    return (
+        <MapContainer
+            center={initialMapCenter}
+            zoom={13}
+            scrollWheelZoom={true}
+            style={{ height: '600px', width: '100%', borderRadius: '1.25rem', border: '2px solid #334155', cursor: 'pointer' }}
+            className="map-container"
+        >
+            <TileLayer
+                attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            />
+            
+            <MapClickHandler handleMapClick={handleMapClick} />
+
+            {userLocation && userLocation.latitude && (
+                <Marker
+                    position={[userLocation.latitude, userLocation.longitude]}
+                    icon={userIcon}
+                >
+                    <ThemedPopup>
+                        <div className="p-2 bg-slate-700 rounded-lg text-center font-bold">Your Location</div>
+                    </ThemedPopup>
+                </Marker>
+            )}
+
+            {stations && stations.map(station => (
+                <Marker
+                    key={station.id}
+                    position={[station.latitude, station.longitude]}
+                    icon={stationIcon}
+                    ref={(el) => (markerRefs.current[station.id] = el)}
+                >
+                    <ThemedPopup>
+                        <div className="p-2 bg-slate-700 rounded-lg">
+                            <b className="text-emerald-400">{station.name}</b><br />
+                            <span className="text-sm text-slate-300">{station.operator}</span>
+                        </div>
+                    </ThemedPopup>
+                </Marker>
+            ))}
+
+            <MapController
+                stations={stations}
+                userLocation={userLocation}
+                selectedStation={selectedStation}
+                markerRefs={markerRefs}
+            />
+        </MapContainer>
+    );
 };
 
 export default MapDisplay;
-

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LocationMarkerIcon, ZapIcon } from './Icons';
+import { LocationMarkerIcon, ZapIcon } from './icons';
 
 const SearchForm = ({ formData, isLoading, handleSubmit, handleChange, handleGetCurrentLocation }) => {
     return (
