@@ -5,8 +5,20 @@
 
 /* Custom global styles and animations */
 body {
-  /* Ensures smooth scrolling on pages with sticky elements like our map */
-  scroll-padding-top: 2rem; 
+  /* Ensures smooth scrolling on pages with sticky elements */
+  scroll-padding-top: 2rem;
+}
+
+/* UPDATED: A static, subtle radial gradient background */
+.background-gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at 15% 15%, #0891b2 0%, #0f172a 35%);
+  opacity: 0.3;
+  z-index: 0;
 }
 
 /* Themed styling for Leaflet's popups to match our dark UI */
@@ -27,8 +39,9 @@ body {
   line-height: 1.6;
 }
 
+/* Updated popup bold color */
 .leaflet-popup-content b {
-  color: #34d399; /* text-emerald-400 */
+  color: #2dd4bf; /* text-teal-400 */
   font-weight: 700;
 }
 
@@ -38,48 +51,6 @@ body {
 
 .leaflet-container a.leaflet-popup-close-button:hover {
   color: #f9fafb; /* text-slate-50 */
-}
-
-/* Custom pulsing dot animation for the user's location on the map */
-.pulsing-dot {
-  width: 16px;
-  height: 16px;
-  background-color: #4299e1; /* A nice blue */
-  border-radius: 50%;
-  border: 3px solid #fff;
-  box-shadow: 0 0 8px rgba(66, 153, 225, 0.8);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(0.9);
-    box-shadow: 0 0 0 0 rgba(66, 153, 225, 0.7);
-  }
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 10px rgba(66, 153, 225, 0);
-  }
-  100% {
-    transform: scale(0.9);
-    box-shadow: 0 0 0 0 rgba(66, 153, 225, 0);
-  }
-}
-
-/* Subtle animated gradient for the main background */
-@keyframes gradient-xy {
-    0%, 100% {
-        background-size: 400% 400%;
-        background-position: left center;
-    }
-    50% {
-        background-size: 200% 200%;
-        background-position: right center;
-    }
-}
-
-.animate-gradient-xy {
-  animation: gradient-xy 15s ease infinite;
 }
 
 /* Custom styled scrollbar for the station list */

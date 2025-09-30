@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useContext } from 'react';
 import { motion } from 'framer-motion';
 import SearchForm from './SearchForm';
 import ResultsSection from './ResultsSection';
+import AuthContext from '../context/AuthContext';
+import api, { getFavorites, addFavorite, removeFavorite } from '../services/api';
 
 const LandingPage = () => {
     const [formData, setFormData] = useState({
@@ -16,8 +17,47 @@ const LandingPage = () => {
     const [error, setError] = useState(null);
     const [message, setMessage] = useState('Enter your location to find the best EV stations near you.');
     const [selectedStation, setSelectedStation] = useState(null);
+    const { user } = useContext(AuthContext);
+    const [favorites, setFavorites] = useState(new Set());
 
-    const API_URL = 'http://localhost:5000/api/recommend';
+    useEffect(() => {
+        const fetchFavorites = async () => {
+            if (user) {
+                try {
+                    const { data } = await getFavorites();
+                    const favoriteIds = new Set(data.map(fav => fav.station_id));
+                    setFavorites(favoriteIds);
+                } catch (err) {
+                    console.error("Could not fetch favorites", err);
+                }
+            } else {
+                setFavorites(new Set());
+            }
+        };
+        fetchFavorites();
+    }, [user]);
+
+    const handleToggleFavorite = async (stationId) => {
+        const isCurrentlyFavorite = favorites.has(stationId);
+        const newFavorites = new Set(favorites);
+        if (isCurrentlyFavorite) {
+            newFavorites.delete(stationId);
+        } else {
+            newFavorites.add(stationId);
+        }
+        setFavorites(newFavorites);
+
+        try {
+            if (isCurrentlyFavorite) {
+                await removeFavorite(stationId);
+            } else {
+                await addFavorite(stationId);
+            }
+        } catch (err) {
+            console.error("Failed to update favorite status", err);
+            setFavorites(favorites);
+        }
+    };
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -42,7 +82,7 @@ const LandingPage = () => {
                     setMessage('Location acquired! Find stations now.');
                 },
                 (err) => {
-                    setError('Could not get your location. Please enter it manually or click on the map.');
+                    setError('Could not get your location. Please enter it manually.');
                     setIsLoading(false);
                 }
             );
@@ -65,20 +105,20 @@ const LandingPage = () => {
         setSelectedStation(null);
 
         try {
-            const response = await axios.post(API_URL, {
+            const { data } = await api.post('/recommend', {
                 latitude: parseFloat(formData.latitude),
                 longitude: parseFloat(formData.longitude),
                 max_distance: parseInt(formData.max_distance),
                 fast_charging_only: parseInt(formData.fast_charging_only),
             });
 
-            if (response.data && response.data.length > 0) {
-                setStations(response.data);
+            if (data && data.length > 0) {
+                setStations(data);
             } else {
                 setMessage('No stations found matching your criteria. Try expanding your search distance.');
             }
         } catch (err) {
-            setError('Failed to fetch recommendations. The server might be down or unavailable.');
+            setError('Failed to fetch recommendations. The server might be down.');
             console.error(err);
         } finally {
             setIsLoading(false);
@@ -99,7 +139,6 @@ const LandingPage = () => {
         setMessage('Location selected on map. Ready to search.');
     };
 
-
     return (
         <div className="min-h-screen bg-slate-900 text-white font-sans overflow-hidden">
             <div className="background-gradient"></div>
@@ -108,7 +147,7 @@ const LandingPage = () => {
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="text-5xl md:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500"
+                    className="text-5xl md:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-500"
                 >
                     EV Station Finder
                 </motion.h1>
@@ -140,6 +179,9 @@ const LandingPage = () => {
                     handleStationSelect={handleStationSelect}
                     userLocation={{ latitude: formData.latitude, longitude: formData.longitude }}
                     handleMapClick={handleMapClick}
+                    favorites={favorites}
+                    onToggleFavorite={handleToggleFavorite}
+                    isLoggedIn={!!user}
                 />
             </main>
         </div>

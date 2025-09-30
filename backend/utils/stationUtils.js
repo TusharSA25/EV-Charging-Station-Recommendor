@@ -346,6 +346,59 @@ const getStationStats = (stations) => {
     operator_count: operators.length
   };
 };
+const Station = require('../models/Station'); // 👈 Add this at the top of the file
+
+/**
+ * Transforms and saves/updates station data from the API to the local database.
+ * @param {Array} rawStations - Raw station data from OpenChargeMap API.
+ * @returns {Promise<void>}
+ */
+const cacheStations = async (rawStations) => {
+  if (!rawStations || rawStations.length === 0) {
+    return;
+  }
+
+  console.log(`📦 Caching ${rawStations.length} stations to the database...`);
+
+  const bulkOps = rawStations.map(station => {
+    // Ensure the data structure matches our Station model
+    const transformed = {
+      station_id: station.ID,
+      name: station.AddressInfo?.Title || `Station ${station.ID}`,
+      operator: station.OperatorInfo?.Title || 'Unknown',
+      location: {
+        type: 'Point',
+        coordinates: [
+          station.AddressInfo.Longitude,
+          station.AddressInfo.Latitude
+        ]
+      },
+      address: formatAddress(station.AddressInfo),
+      status: station.StatusType?.Title || 'Unknown',
+      // ... include other fields from your transformStationData logic
+      max_power_kw: station.Connections?.[0]?.PowerKW || 0,
+      fast_charging: (station.Connections?.[0]?.PowerKW || 0) >= 50,
+      connection_types: station.Connections?.map(c => c.ConnectionType?.Title || 'Unknown'),
+      last_updated: new Date()
+    };
+    
+    return {
+      updateOne: {
+        filter: { station_id: station.ID },
+        update: { $set: transformed },
+        upsert: true // This will insert the document if it doesn't exist
+      }
+    };
+  });
+
+  try {
+    await Station.bulkWrite(bulkOps);
+    console.log('✅ Database cache updated successfully.');
+  } catch (error) {
+    console.error('❌ Error updating database cache:', error);
+  }
+};
+
 
 module.exports = {
   transformStationData,
@@ -357,5 +410,6 @@ module.exports = {
   isValidStation,
   sortStations,
   groupStationsByOperator,
-  getStationStats
+  getStationStats,
+   cacheStations
 };

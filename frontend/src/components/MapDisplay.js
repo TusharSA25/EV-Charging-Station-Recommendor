@@ -8,6 +8,12 @@ import { useEffect, useRef } from 'react';
 const MapController = ({ stations, userLocation, selectedStation, markerRefs }) => {
     const map = useMap();
 
+    // NEW: This effect fixes the tile loading issue.
+    // It tells the map to re-evaluate its size after the component has rendered.
+    useEffect(() => {
+        map.invalidateSize();
+    }, [stations, map]);
+
     useEffect(() => {
         if (!selectedStation && stations && stations.length > 0 && userLocation.latitude && userLocation.longitude) {
             const bounds = L.latLngBounds([
@@ -48,8 +54,8 @@ const MapDisplay = ({ stations, userLocation, selectedStation, handleMapClick })
 
     const userIcon = L.divIcon({
         html: `<div class="relative flex items-center justify-center">
-                 <div class="absolute w-8 h-8 bg-emerald-500 rounded-full animate-ping-slow opacity-60"></div>
-                 <div class="relative w-4 h-4 bg-emerald-400 rounded-full border-2 border-white shadow-lg"></div>
+                 <div class="absolute w-8 h-8 bg-teal-500 rounded-full animate-ping-slow opacity-60"></div>
+                 <div class="relative w-4 h-4 bg-teal-400 rounded-full border-2 border-white shadow-lg"></div>
                </div>`,
         className: 'bg-transparent border-0',
         iconSize: [32, 32],
@@ -57,7 +63,7 @@ const MapDisplay = ({ stations, userLocation, selectedStation, handleMapClick })
     });
 
     const stationIcon = new L.Icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
         iconSize: [25, 41],
         iconAnchor: [12, 41],
@@ -108,7 +114,7 @@ const MapDisplay = ({ stations, userLocation, selectedStation, handleMapClick })
                 >
                     <ThemedPopup>
                         <div className="p-2 bg-slate-700 rounded-lg">
-                            <b className="text-emerald-400">{station.name}</b><br />
+                            <b className="text-teal-400">{station.name}</b><br />
                             <span className="text-sm text-slate-300">{station.operator}</span>
                         </div>
                     </ThemedPopup>

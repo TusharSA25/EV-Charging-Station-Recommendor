@@ -12,7 +12,19 @@ const SkeletonCard = () => (
     </div>
 );
 
-const ResultsSection = ({ isLoading, error, message, stations, userLocation, selectedStation, handleStationSelect, handleMapClick }) => {
+const ResultsSection = ({ 
+    isLoading, 
+    error, 
+    message, 
+    stations, 
+    userLocation, 
+    selectedStation, 
+    handleStationSelect, 
+    handleMapClick, 
+    favorites, 
+    onToggleFavorite, 
+    isLoggedIn 
+}) => {
     return (
         <section id="results" className="mt-12">
             <AnimatePresence>
@@ -49,6 +61,9 @@ const ResultsSection = ({ isLoading, error, message, stations, userLocation, sel
                             stations={stations}
                             selectedStation={selectedStation}
                             handleStationSelect={handleStationSelect}
+                            favorites={favorites}
+                            onToggleFavorite={onToggleFavorite}
+                            isLoggedIn={isLoggedIn}
                         />
                     </div>
                 </div>

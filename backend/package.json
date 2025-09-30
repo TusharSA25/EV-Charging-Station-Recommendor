@@ -8,15 +8,24 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["ev", "charging", "stations", "recommendations", "ml"],
+  "keywords": [
+    "ev",
+    "charging",
+    "stations",
+    "recommendations",
+    "ml"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "axios": "^1.6.0",
+    "express": "^4.18.2",
     "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.3",
     "morgan": "^1.10.0"
   },
   "devDependencies": {

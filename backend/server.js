@@ -1,11 +1,18 @@
+// server.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 require('dotenv').config();
+const connectDB = require('./config/db'); // Import the connection utility
 
 const recommendationRoutes = require('./routes/recommendation');
+const userRoutes=require('./routes/userRoutes')
+const favoriteRoutes=require('./routes/favoriteRoutes');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
+
+// Connect to MongoDB
+connectDB(); // Call the function here
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -38,10 +45,14 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api', recommendationRoutes);
+app.use('/api/users',userRoutes);
+app.use('/api/favorites',favoriteRoutes);
 
 // Error handling middleware
 app.use(notFound);
 app.use(errorHandler);
+
+
 
 // Start server
 app.listen(PORT, () => {

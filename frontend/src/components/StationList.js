@@ -1,8 +1,9 @@
+// src/components/StationList.js
 import React from 'react';
 import { motion } from 'framer-motion';
 import StationCard from './StationCard';
 
-const StationList = ({ stations, selectedStation, handleStationSelect }) => {
+const StationList = ({ stations, selectedStation, handleStationSelect, favorites, onToggleFavorite, isLoggedIn }) => {
     const containerVariants = {
         hidden: { opacity: 1 },
         visible: {
@@ -18,7 +19,6 @@ const StationList = ({ stations, selectedStation, handleStationSelect }) => {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            // The class h-[600px] sets a fixed height to match the map
             className="space-y-4 lg:col-span-5 h-[600px] overflow-y-auto pr-2 custom-scrollbar"
         >
             {stations.map(station => (
@@ -27,6 +27,10 @@ const StationList = ({ stations, selectedStation, handleStationSelect }) => {
                     station={station}
                     selectedStation={selectedStation}
                     handleStationSelect={handleStationSelect}
+                    // 👇 This is the crucial line to add
+                    isFavorite={favorites.has(station.id)}
+                    onToggleFavorite={onToggleFavorite}
+                    isLoggedIn={isLoggedIn}
                 />
             ))}
         </motion.div>
@@ -34,4 +38,3 @@ const StationList = ({ stations, selectedStation, handleStationSelect }) => {
 };
 
 export default StationList;
-

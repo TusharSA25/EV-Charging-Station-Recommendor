@@ -1,18 +1,20 @@
+// controllers/recommendationController.js
+
 const { fetchNearbyStations } = require('../services/openChargeMapService');
 const { getMLRecommendations } = require('../services/mlService');
-const { filterStations, transformStationData } = require('../utils/stationUtils');
+const { filterStations, transformStationData, cacheStations } = require('../utils/stationUtils');
+const Station = require('../models/Station'); // 👈 Import the Station model
 
-/**
- * Get EV station recommendations based on user preferences
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
+// Define how old data can be before we refresh it (e.g., 24 hours)
+const CACHE_TTL_HOURS = 24;
+
 const getRecommendations = async (req, res) => {
   try {
     const {
       latitude,
       longitude,
       max_distance = 10,
+      // ... (rest of your request body params)
       budget = 50,
       preferred_operator,
       fast_charging_only = 0,
@@ -21,27 +23,60 @@ const getRecommendations = async (req, res) => {
 
     console.log(`🔍 Fetching recommendations for location: ${latitude}, ${longitude}`);
 
-    // Step 1: Fetch nearby stations from OpenChargeMap
-    console.log('📡 Fetching stations from OpenChargeMap API...');
-    const rawStations = await fetchNearbyStations({
-      latitude,
-      longitude,
-      max_distance,
-      fast_charging_only: Boolean(fast_charging_only),
-      public_access_only: Boolean(public_access_only)
+    // --- CACHING LOGIC START ---
+    const stale_after_date = new Date(Date.now() - CACHE_TTL_HOURS * 60 * 60 * 1000);
+
+    // 1. Check the cache first using a geospatial query
+    console.log('🌍 Checking local database for stations...');
+    let stationsFromDB = await Station.find({
+      location: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [longitude, latitude]
+          },
+          $maxDistance: max_distance * 1000 // Convert km to meters
+        }
+      },
+      last_updated: { $gte: stale_after_date } // Only get fresh data
     });
 
+    let rawStations = [];
+
+    // 2. Cache Miss or Stale Data? Fetch from API.
+    if (stationsFromDB.length === 0) {
+      console.log('🟡 Cache miss or stale. Fetching from OpenChargeMap API...');
+      const apiStations = await fetchNearbyStations({ latitude, longitude, max_distance });
+      
+      if (apiStations && apiStations.length > 0) {
+        // Asynchronously cache the new data without blocking the user's request
+        cacheStations(apiStations).catch(console.error);
+        rawStations = apiStations;
+      }
+    } else {
+      console.log(`🟢 Cache hit! Found ${stationsFromDB.length} stations in the database.`);
+      // If we have a cache hit, we can use the DB data directly.
+      // We set rawStations to the format the rest of our app expects.
+      rawStations = stationsFromDB.map(s => ({
+        ID: s.station_id,
+        AddressInfo: {
+            Title: s.name,
+            Latitude: s.location.coordinates[1],
+            Longitude: s.location.coordinates[0],
+            // You can add more address fields here if needed
+        },
+        OperatorInfo: { Title: s.operator },
+        StatusType: { Title: s.status },
+        Connections: s.connection_types.map(ct => ({ ConnectionType: { Title: ct }, PowerKW: s.max_power_kw }))
+      }));
+    }
+    // --- CACHING LOGIC END ---
+
     if (!rawStations || rawStations.length === 0) {
-      return res.status(200).json({
-        message: 'No stations found in the specified area',
-        stations: []
-      });
+      return res.status(200).json({ message: 'No stations found in the specified area', stations: [] });
     }
 
-    console.log(`📍 Found ${rawStations.length} stations from API`);
-
-    // Step 2: Transform and filter stations
-    console.log('🔧 Processing and filtering stations...');
+    console.log(`🔧 Processing ${rawStations.length} stations...`);
     let processedStations = transformStationData(rawStations);
     
     processedStations = filterStations(processedStations, {
@@ -51,57 +86,21 @@ const getRecommendations = async (req, res) => {
       public_access_only: Boolean(public_access_only)
     });
 
-    console.log(`✅ ${processedStations.length} stations after filtering`);
-
     if (processedStations.length === 0) {
-      return res.status(200).json({
-        message: 'No stations match your criteria',
-        stations: []
-      });
+      return res.status(200).json({ message: 'No stations match your criteria', stations: [] });
     }
 
-    // Step 3: Get ML-based recommendations
     console.log('🤖 Getting ML recommendations...');
     const recommendations = await getMLRecommendations({
       stations: processedStations,
-      user_preferences: {
-        latitude,
-        longitude,
-        max_distance,
-        budget,
-        preferred_operator,
-        fast_charging_only,
-        public_access_only
-      }
+      user_preferences: { /* ... user preferences */ }
     });
 
-    console.log(`🎯 Returning ${recommendations.length} recommendations`);
-
-    // Step 4: Return top recommendations (limit to 20 for performance)
-    const topRecommendations = recommendations.slice(0, 20);
-
-    res.status(200).json(topRecommendations);
+    res.status(200).json(recommendations.slice(0, 20));
 
   } catch (error) {
     console.error('❌ Error in getRecommendations:', error);
-    
-    // Provide different error messages based on error type
-    if (error.message.includes('OpenChargeMap')) {
-      res.status(503).json({
-        error: 'Unable to fetch station data. Please try again later.',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    } else if (error.message.includes('ML model')) {
-      res.status(500).json({
-        error: 'Recommendation system temporarily unavailable. Showing filtered results.',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    } else {
-      res.status(500).json({
-        error: 'Internal server error. Please try again.',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
+    res.status(500).json({ error: 'Internal server error.' });
   }
 };
 
